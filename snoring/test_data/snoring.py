@@ -14,7 +14,7 @@ def preprocess(data):
     second_derivative = [0]
     for i in range(len(intensity)-1):
         if i is not 0:
-            second_derivative.append(intensity[i+1]+intensity[i-1]-2*intensity[i])
+            second_derivative.append(abs(intensity[i+1]+intensity[i-1]-2*intensity[i]))
     second_derivative.append(0)
     data['y'] = second_derivative[:]
     return data
@@ -23,28 +23,19 @@ def preprocess(data):
 def sampled(data):
     l = int(len(data['y'])/100)
     temp = [0]*l
-    for i in range(l):
-        if i is 0:
-            continue
-        temp[i] = min(data['y'][(i-1)*100:i*100])
+    for i in range(l-1):
+        temp[i] = np.mean(data['y'][i*100:(i+1)*100])
     temp = pd.DataFrame(temp)
     temp.columns = ['y']
+    temp['n'] = temp['y'][:]
     return temp
 
-def max_curvature(sorted_temp):
-    second_derivative = []
-    for i in range(len(sorted_temp)-1):
-        if i is not 0:
-            second_derivative.append(sorted_temp[i+1]+sorted_temp[i-1]-2*sorted_temp[i])
-    return second_derivative.index(max(second_derivative))
-
 def classify(data):
-    data['n'] = data['y'][:]
-    sort_temp = list(data['n'])
+    sort_temp = list(data['y'])
     sort_temp.sort()
     threshold_cutoff = np.median(sort_temp)
     for i in range(len(data['y'])):
-        if data['y'][i] < threshold_cutoff:
+        if data['y'][i] < 2*threshold_cutoff:
             data['n'][i] = 0
         else:
             data['y'][i] = 0
@@ -73,7 +64,7 @@ def plot_data(data):
 file_names = ['test1.csv','test2.csv','test3.csv','test4.csv','test5.csv']
 for file in file_names:
     data = read_csv(file)
-    original_signal = data['y'][:]
+    original_signal = list(data['y'][:])
     data = preprocess(data)
     data = sampled(data)
     data = classify(data)
